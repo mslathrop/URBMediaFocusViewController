@@ -135,6 +135,10 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 	self.tapRecognizer.numberOfTouchesRequired = 1;
 	[self.tapRecognizer requireGestureRecognizerToFail:self.doubleTapRecognizer];
 	[self.view addGestureRecognizer:self.tapRecognizer];
+    
+    UILongPressGestureRecognizer *longPressGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+    longPressGestureRecognizer.delegate = self;
+    [self.imageView addGestureRecognizer:longPressGestureRecognizer];
 	
 	// only add pan gesture and physics stuff if we can (e.g., iOS 7+)
 	if (self.dynamicAnimatorEnabled && NSClassFromString(@"UIDynamicAnimator")) {
@@ -634,6 +638,11 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 
 - (void)handleDismissFromTap:(UITapGestureRecognizer *)gestureRecognizer {
 	CGPoint location = [gestureRecognizer locationInView:self.view];
+    
+    UIMenuController *menu = [UIMenuController sharedMenuController];
+    if ([menu isMenuVisible]) {
+        return;
+    }
 	
 	// if we are allowing a tap anywhere to dismiss, check if we allow taps within image bounds to dismiss also
 	// otherwise a tap outside image bounds will only be able to dismiss
@@ -647,6 +656,35 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 		// we aren't allowing taps outside of image bounds to dismiss, but tap was detected on image view, we can dismiss
 		[self dismissToTargetView];
 	}
+}
+    
+#pragma mark - Long press methods
+    
+- (void)copy:(id)sender {
+    UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+    [pasteboard setImage:self.imageView.image];
+}
+    
+- (void)saveImage:(id)sender {
+    UIImage* imageToSave = self.imageView.image;
+    UIImageWriteToSavedPhotosAlbum(imageToSave, nil, nil, nil);
+}
+    
+- (BOOL)canBecomeFirstResponder {
+    return YES;
+}
+    
+- (void)handleLongPress:(id)sender {
+    UIMenuController *menu = [UIMenuController sharedMenuController];
+    if (![menu isMenuVisible]) {
+        [self becomeFirstResponder];
+        [menu setTargetRect:self.imageView.frame inView:self.imageView];
+        
+        UIMenuItem *save = [[UIMenuItem alloc] initWithTitle:@"Save Image" action:@selector(saveImage:)];
+        menu.menuItems = @[save];
+        
+        [menu setMenuVisible:YES animated:YES];
+    }
 }
 
 #pragma mark - UIScrollViewDelegate Methods
