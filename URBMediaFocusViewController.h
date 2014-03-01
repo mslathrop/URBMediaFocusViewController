@@ -55,6 +55,10 @@
 
 // determines whether or not view should be dismissed when the container view is tapped within bounds of image view
 @property (nonatomic, assign) BOOL shouldDismissOnImageTap;
+    
+@property (nonatomic, assign) CGFloat backgroundScale;
+    
+@property (nonatomic, assign) CGFloat blurRadius;
 
 @property (nonatomic, weak) id<URBMediaFocusViewControllerDelegate> delegate;
 

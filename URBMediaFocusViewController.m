@@ -19,8 +19,6 @@ static const CGFloat __angularVelocityFactor = 1.0f;			// adjusts the amount of 
 static const CGFloat __minimumVelocityRequiredForPush = 50.0f;	// defines how much velocity is required for the push behavior to be applied
 
 /* parallax options */
-static const CGFloat __backgroundScale = 0.9f;					// defines how much the background view should be scaled
-static const CGFloat __blurRadius = 2.0f;						// defines how much the background view is blurred
 static const CGFloat __blurSaturationDeltaMask = 0.8f;
 static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint the background view
 
@@ -86,6 +84,8 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 		self.parallaxEnabled = YES;
 		self.shouldDismissOnTap = YES;
 		self.shouldDismissOnImageTap = NO;
+        self.backgroundScale = 0.9f;
+        self.blurRadius = 2.0f;
 	}
 	return self;
 }
@@ -286,8 +286,8 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 		
 		if (self.snapshotView) {
 			self.blurredSnapshotView.alpha = 1.0f;
-			self.blurredSnapshotView.transform = CGAffineTransformScale(CGAffineTransformIdentity, __backgroundScale, __backgroundScale);
-			self.snapshotView.transform = CGAffineTransformScale(CGAffineTransformIdentity, __backgroundScale, __backgroundScale);
+			self.blurredSnapshotView.transform = CGAffineTransformScale(CGAffineTransformIdentity, _backgroundScale, _backgroundScale);
+			self.snapshotView.transform = CGAffineTransformScale(CGAffineTransformIdentity, _backgroundScale, _backgroundScale);
 		}
 		
 	} completion:^(BOOL finished) {
@@ -390,8 +390,8 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 
 - (void)createViewsForParallax {
 	// container view for window
-	// inset container view so we can blur the edges, but we also need to scale up so when __backgroundScale is applied, everything lines up
-	CGRect containerFrame = CGRectMake(0, 0, CGRectGetWidth(self.keyWindow.frame) * (1.0f / __backgroundScale), CGRectGetHeight(self.keyWindow.frame) * (1.0f / __backgroundScale));
+	// inset container view so we can blur the edges, but we also need to scale up so when _backgroundScale is applied, everything lines up
+	CGRect containerFrame = CGRectMake(0, 0, CGRectGetWidth(self.keyWindow.frame) * (1.0f / _backgroundScale), CGRectGetHeight(self.keyWindow.frame) * (1.0f / _backgroundScale));
 	UIView *containerView = [[UIView alloc] initWithFrame:CGRectIntegral(containerFrame)];
 	containerView.backgroundColor = [UIColor blackColor];
 	
@@ -404,9 +404,9 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 	
 	UIImageView *snapshotView;
 	// only add blurred view if radius is above 0
-	if (self.shouldBlurBackground && __blurRadius) {
+	if (self.shouldBlurBackground && _blurRadius) {
 		UIImage *snapshot = [containerView snapshotImageWithScale:[UIScreen mainScreen].scale];
-		snapshot = [snapshot URB_applyBlurWithRadius:__blurRadius
+		snapshot = [snapshot URB_applyBlurWithRadius:_blurRadius
 										   tintColor:[UIColor colorWithWhite:0.0f alpha:__blurTintColorAlpha]
 							   saturationDeltaFactor:__blurSaturationDeltaMask
 										   maskImage:nil];
