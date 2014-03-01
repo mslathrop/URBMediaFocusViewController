@@ -59,6 +59,8 @@
 @property (nonatomic, assign) CGFloat backgroundScale;
     
 @property (nonatomic, assign) CGFloat blurRadius;
+    
+@property (nonatomic, assign) BOOL dynamicAnimatorEnabled;
 
 @property (nonatomic, weak) id<URBMediaFocusViewControllerDelegate> delegate;
 

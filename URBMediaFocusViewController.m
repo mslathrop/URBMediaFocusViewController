@@ -10,8 +10,8 @@
 #import "URBMediaFocusViewController.h"
 
 static const CGFloat __overlayAlpha = 0.7f;						// opacity of the black overlay displayed below the focused image
-static const CGFloat __animationDuration = 0.18f;				// the base duration for present/dismiss animations (except physics-related ones)
-static const CGFloat __maximumDismissDelay = 0.5f;				// maximum time of delay (in seconds) between when image view is push out and dismissal animations begin
+static const CGFloat __animationDuration = 0.2f;				// the base duration for present/dismiss animations (except physics-related ones)
+static const CGFloat __maximumDismissDelay = 0.25f;				// maximum time of delay (in seconds) between when image view is push out and dismissal animations begin
 static const CGFloat __resistance = 0.0f;						// linear resistance applied to the image’s dynamic item behavior
 static const CGFloat __density = 1.0f;							// relative mass density applied to the image's dynamic item behavior
 static const CGFloat __velocityFactor = 1.0f;					// affects how quickly the view is pushed out of the view
@@ -80,6 +80,7 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 		_hasLaidOut = NO;
 		_unhideStatusBarOnDismiss = YES;
 		
+        self.dynamicAnimatorEnabled = YES;
 		self.shouldBlurBackground = YES;
 		self.parallaxEnabled = YES;
 		self.shouldDismissOnTap = YES;
@@ -136,7 +137,7 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 	[self.view addGestureRecognizer:self.tapRecognizer];
 	
 	// only add pan gesture and physics stuff if we can (e.g., iOS 7+)
-	if (NSClassFromString(@"UIDynamicAnimator")) {
+	if (self.dynamicAnimatorEnabled && NSClassFromString(@"UIDynamicAnimator")) {
 		// pan gesture to handle the physics
 		self.panRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanGesture:)];
 		self.panRecognizer.delegate = self;
