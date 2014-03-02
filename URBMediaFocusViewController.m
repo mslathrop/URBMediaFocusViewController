@@ -10,8 +10,8 @@
 #import "URBMediaFocusViewController.h"
 
 static const CGFloat __overlayAlpha = 0.7f;						// opacity of the black overlay displayed below the focused image
-static const CGFloat __animationDuration = 0.2f;				// the base duration for present/dismiss animations (except physics-related ones)
-static const CGFloat __maximumDismissDelay = 0.25f;				// maximum time of delay (in seconds) between when image view is push out and dismissal animations begin
+static const CGFloat __animationDuration = 0.3f;				// the base duration for present/dismiss animations (except physics-related ones)
+static const CGFloat __maximumDismissDelay = 0.15f;				// maximum time of delay (in seconds) between when image view is push out and dismissal animations begin
 static const CGFloat __resistance = 0.0f;						// linear resistance applied to the image’s dynamic item behavior
 static const CGFloat __density = 1.0f;							// relative mass density applied to the image's dynamic item behavior
 static const CGFloat __velocityFactor = 1.0f;					// affects how quickly the view is pushed out of the view
@@ -72,6 +72,7 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 	UIInterfaceOrientation _currentOrientation;
 	BOOL _hasLaidOut;
 	BOOL _unhideStatusBarOnDismiss;
+    BOOL _menuWasDismissed;
 }
 
 - (id)init {
@@ -101,7 +102,7 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 	self.view.frame = self.keyWindow.bounds;
 	
 	self.backgroundView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, CGRectGetWidth(self.keyWindow.frame), CGRectGetHeight(self.keyWindow.frame))];
-	self.backgroundView.backgroundColor = [UIColor colorWithWhite:0.0f alpha:0.6f];
+	self.backgroundView.backgroundColor = [UIColor colorWithWhite:0.0f alpha:0.8f];
 	self.backgroundView.alpha = 0.0f;
 	self.backgroundView.autoresizingMask = UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth;
 	[self.view addSubview:self.backgroundView];
@@ -227,7 +228,10 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 	// image view's destination frame is the size of the image capped to the width/height of the target view
 	CGPoint midpoint = CGPointMake(CGRectGetMidX(self.view.bounds), CGRectGetMidY(self.view.bounds));
 	CGSize scaledImageSize = CGSizeMake(image.size.width * scale, image.size.height * scale);
-	CGRect targetRect = CGRectMake(midpoint.x - scaledImageSize.width / 2.0, midpoint.y - scaledImageSize.height / 2.0, scaledImageSize.width, scaledImageSize.height);
+	CGRect targetRect = CGRectMake(midpoint.x - scaledImageSize.width / 2.0,
+                                   midpoint.y - scaledImageSize.height / 2.0,
+                                   scaledImageSize.width,
+                                   scaledImageSize.height);
 	self.imageView.frame = targetRect;
 	
 	// set initial frame of image view to match that of the presenting image
@@ -363,28 +367,32 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 }
 
 - (void)dismissToTargetView {
-	[self hideSnapshotView];
-	
-	if (self.scrollView.zoomScale != 1.0f) {
-		[self.scrollView setZoomScale:1.0f animated:NO];
-	}
-	
-	CGRect targetFrame = [self.view convertRect:self.fromView.frame fromView:nil];
-	if (!CGRectIsEmpty(self.fromRect)) {
-		targetFrame = self.fromRect;
-	}
-	
-	[UIView animateWithDuration:__animationDuration delay:0 options:UIViewAnimationOptionCurveEaseOut animations:^{
-		self.imageView.frame = targetFrame;
-		//self.imageView.alpha = 0.0f;
-		self.backgroundView.alpha = 0.0f;
-	} completion:^(BOOL finished) {
-		[self cleanup];
-	}];
-	// offset image fade out slightly than background/frame animation
-	[UIView animateWithDuration:__animationDuration - 0.1 delay:0.05 options:UIViewAnimationOptionCurveEaseOut animations:^{
-		self.imageView.alpha = 0.0f;
-	} completion:nil];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        
+        [self hideSnapshotView];
+        
+        if (self.scrollView.zoomScale != 1.0f) {
+            [self.scrollView setZoomScale:1.0f animated:NO];
+        }
+        
+        CGRect targetFrame = [self.view convertRect:self.fromView.frame fromView:nil];
+        if (!CGRectIsEmpty(self.fromRect)) {
+            targetFrame = self.fromRect;
+        }
+        
+        [UIView animateWithDuration:__animationDuration delay:0 options:UIViewAnimationOptionCurveEaseOut animations:^{
+            self.imageView.frame = targetFrame;
+            //self.imageView.alpha = 0.0f;
+            self.backgroundView.alpha = 0.0f;
+        } completion:^(BOOL finished) {
+            [self cleanup];
+        }];
+        // offset image fade out slightly than background/frame animation
+        [UIView animateWithDuration:__animationDuration - 0.1 delay:0.05 options:UIViewAnimationOptionCurveEaseOut animations:^{
+            self.imageView.alpha = 0.0f;
+        } completion:nil];
+        
+    });
 }
 
 #pragma mark - Private Methods
@@ -497,16 +505,18 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 		[[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:UIStatusBarAnimationNone];
 	}
 	
-	[UIView animateWithDuration:__animationDuration delay:0 options:UIViewAnimationOptionCurveEaseOut animations:^{
-		self.blurredSnapshotView.alpha = 0.0f;
-		self.blurredSnapshotView.transform = CGAffineTransformIdentity;
-		self.snapshotView.transform = CGAffineTransformIdentity;
-	} completion:^(BOOL finished) {
-		[self.snapshotView removeFromSuperview];
-		[self.blurredSnapshotView removeFromSuperview];
-		self.snapshotView = nil;
-		self.blurredSnapshotView = nil;
-	}];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [UIView animateWithDuration:__animationDuration delay:0 options:UIViewAnimationOptionCurveEaseOut animations:^{
+            self.blurredSnapshotView.alpha = 0.0f;
+            self.blurredSnapshotView.transform = CGAffineTransformIdentity;
+            self.snapshotView.transform = CGAffineTransformIdentity;
+        } completion:^(BOOL finished) {
+            [self.snapshotView removeFromSuperview];
+            [self.blurredSnapshotView removeFromSuperview];
+            self.snapshotView = nil;
+            self.blurredSnapshotView = nil;
+        }];
+    });
 }
 
 - (void)cleanup {
@@ -599,7 +609,7 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 			// for angular velocity: positive = clockwise, negative = counterclockwise
 			CGFloat xRatioFromCenter = fabsf(offsetFromCenter.horizontal) / (CGRectGetWidth(self.imageView.frame) / 2.0f);
 			CGFloat yRatioFromCetner = fabsf(offsetFromCenter.vertical) / (CGRectGetHeight(self.imageView.frame) / 2.0f);
-
+            
 			// apply device scale to angular velocity
 			angularVelocity *= deviceAngularScale;
 			// adjust angular velocity based on distance from center, force applied farther towards the edges gets more spin
@@ -627,7 +637,7 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 	else {
 		CGPoint tapPoint = [self.imageView convertPoint:[gestureRecognizer locationInView:gestureRecognizer.view] fromView:self.scrollView];
 		CGFloat newZoomScale = self.scrollView.maximumZoomScale;
-				
+        
 		CGFloat w = CGRectGetWidth(self.imageView.frame) / newZoomScale;
 		CGFloat h = CGRectGetHeight(self.imageView.frame) / newZoomScale;
 		CGRect zoomRect = CGRectMake(tapPoint.x - (w / 2.0f), tapPoint.y - (h / 2.0f), w, h);
@@ -643,12 +653,18 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
     if ([menu isMenuVisible]) {
         return;
     }
+    
+    if (_menuWasDismissed) {
+        _menuWasDismissed = NO;
+        return;
+    }
 	
 	// if we are allowing a tap anywhere to dismiss, check if we allow taps within image bounds to dismiss also
 	// otherwise a tap outside image bounds will only be able to dismiss
 	if (self.shouldDismissOnTap) {
 		if (self.shouldDismissOnImageTap || !CGRectContainsPoint(self.imageView.frame, location)) {
 			[self dismissToTargetView];
+            return;
 		}
 	}
 	
@@ -657,23 +673,25 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 		[self dismissToTargetView];
 	}
 }
-    
+
 #pragma mark - Long press methods
-    
+
 - (void)copy:(id)sender {
+    _menuWasDismissed = NO;
     UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
     [pasteboard setImage:self.imageView.image];
 }
-    
+
 - (void)saveImage:(id)sender {
+    _menuWasDismissed = NO;
     UIImage* imageToSave = self.imageView.image;
     UIImageWriteToSavedPhotosAlbum(imageToSave, nil, nil, nil);
 }
-    
+
 - (BOOL)canBecomeFirstResponder {
     return YES;
 }
-    
+
 - (void)handleLongPress:(id)sender {
     UIMenuController *menu = [UIMenuController sharedMenuController];
     if (![menu isMenuVisible]) {
@@ -684,6 +702,8 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
         menu.menuItems = @[save];
         
         [menu setMenuVisible:YES animated:YES];
+        
+        _menuWasDismissed = YES;
     }
 }
 
@@ -695,31 +715,27 @@ static const CGFloat __blurTintColorAlpha = 0.2f;				// defines how much to tint
 
 - (void)scrollViewDidZoom:(UIScrollView *)scrollView {
 	// zoomScale of 1.0 is always our starting point, so anything other than that we disable the pan gesture recognizer
-	if (scrollView.zoomScale <= 1.0f && !scrollView.zooming) {
-		if (self.panRecognizer) {
-			[self.imageView addGestureRecognizer:self.panRecognizer];
-		}
-		scrollView.scrollEnabled = NO;
-	}
-	else {
-		if (self.panRecognizer) {
-			[self.imageView removeGestureRecognizer:self.panRecognizer];
-		}
-		scrollView.scrollEnabled = YES;
-	}
+    //	if (scrollView.zoomScale <= 1.0f && !scrollView.zooming) {
+    //		if (self.panRecognizer) {
+    //			[self.imageView addGestureRecognizer:self.panRecognizer];
+    //		}
+    //		scrollView.scrollEnabled = NO;
+    //	}
+    //	else {
+    //		if (self.panRecognizer) {
+    //			[self.imageView removeGestureRecognizer:self.panRecognizer];
+    //		}
+    //		scrollView.scrollEnabled = YES;
+    //	}
+    
+    scrollView.scrollEnabled = YES;
 	[self centerScrollViewContents];
 }
 
 #pragma mark - UIGestureRecognizerDelegate Methods
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-	CGFloat transformScale = self.imageView.transform.a;
-	BOOL shouldRecognize = transformScale > _minScale;
-	
-	// make sure tap and double tap gestures aren't recognized simultaneously
-	shouldRecognize = !([gestureRecognizer isKindOfClass:[UITapGestureRecognizer class]] && [otherGestureRecognizer isKindOfClass:[UITapGestureRecognizer class]]);
-	
-	return shouldRecognize;
+	return NO;
 }
 
 #pragma mark - NSURLConnectionDelegate
